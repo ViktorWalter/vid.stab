@@ -215,6 +215,10 @@ int vsMotionDetection(VSMotionDetect* md, LocalMotions* motions, VSFrame *frame)
       motionscoarse = calcTransFields(md, &md->fieldscoarse,
                                       calcFieldTransPlanar, contrastSubImgPlanar);
     }
+
+    double min_match_level = 5;
+    motionscoarse = vs_vector_filter(&motionscoarse, lm_match_better, &min_match_level);
+
     int num_motions = vs_vector_size(&motionscoarse);
     if (num_motions < 1) {
       vs_log_warn(md->conf.modName, "too low contrast. \
@@ -234,7 +238,7 @@ int vsMotionDetection(VSMotionDetect* md, LocalMotions* motions, VSFrame *frame)
       }
       // through out those with bad match (worse than mean of coarse scan)
       VSArray matchQualities1 = localmotionsGetMatch(&motionscoarse);
-      double meanMatch = cleanmean(matchQualities1.dat, matchQualities1.len, NULL, NULL);
+      double meanMatch = 0.8*cleanmean(matchQualities1.dat, matchQualities1.len, NULL, NULL);
       motionsfine      = vs_vector_filter(&motions2, lm_match_better, &meanMatch);
       if(0){
         printf("\nMatches: mean:  %f | ", meanMatch);
@@ -261,7 +265,9 @@ int vsMotionDetection(VSMotionDetect* md, LocalMotions* motions, VSFrame *frame)
       for (int i = 0; i < num_motions_fine; i++)
         drawFieldTrans(md, LMGet(&motionsfine,i), 64);
     }
-    *motions = vs_vector_concat(&motionscoarse,&motionsfine);
+    /* for (int i = 0; i < num_motions; i++) */
+    /*   vs_log_info(md->conf.modName, "x=%d, y=%d",LMGet(&motionscoarse,i)->v.x,LMGet(&motionscoarse,i)->v.y); */
+      *motions = vs_vector_concat(&motionscoarse,&motionsfine);
     //*motions = motionscoarse;
     //*motions = motionsfine;
   } else {
